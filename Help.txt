@@ -1,0 +1,82 @@
+This is the help file for 'RepGen', a tool for generating reports.
+
+Overview:
+=========
+
+This program is intended to help speed up a teachers job of
+the creation of pupil reports. In essence, it takes as input
+an excel comma separated file (csv file) which describes the 
+pupils + a given grade. It will then convert that grade into
+a textual paragraph using the comments supplied in a user defined 
+file, and replaces the tags in the text, i.e. <Name>, <he/she>, 
+with the information relevent for each pupil.
+
+Instructions:
+=============
+
+To run in GUI mode:
+
+wish RepGen.tk
+
+To run on the command line, see the Makefile in the example.
+
+Configuration:
+==============
+
+The following is an example of the values needed in the 
+configuration file, and an explaination of the effect of
+each of them:
+
+# The position index of the students first name.
+NAME_INDEX=0
+
+# The position index of the students gender.
+GENDER_INDEX=11
+
+# Tag for 'male' in the gender column of the input file.
+MALE_TAG=M
+
+# Tag for 'female' in the gender column of the input file.
+FEMALE_TAG=F
+
+# The index of a grade given to each pupil. This field may not
+# be present in the file. If this is the case, then by convention
+# we set its value to that of one past the final column index.
+GRADE_INDEX=12
+
+# The position indices of the score(s)..
+SCORE_COLUMNS=8 9 10
+
+# The position indecies of the columns from the 
+# input file to be included int the output file.
+OUTPUT_COLUMNS=0 1 2 3 4 5 6 7 8 9 10 11
+
+# The lines to ignore (i.e. not treat as score lines), 
+# thus these lines will not get processed.
+IGNORE_LINES=0
+
+# If VERBOSE is set to 'true' then this enables the 
+# output of diagnostic information to the Log.txt file.
+# (Used mainly for debugging purposes).
+VERBOSE=false
+
+Comments File:
+==============
+
+The user supplied comment file needs to be formatted in 
+a certain way so as RepGen can know how to process the 
+comments. Each line starting with a '+=' tag marks the 
+start of a comment. See the examples for more details.
+
+Tags:
+=====
+ - <Name>
+ - <Names>
+ - <grade>
+ - <he/she>
+ - <He/She>
+ - <his/her>
+ - <His/Her>
+ - <him/her>
+ - <himself/herself>
+

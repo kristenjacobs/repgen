@@ -1,0 +1,330 @@
+lappend auto_path . $env(REPGEN_ROOT)
+package require RepGenEngine
+
+set g_false 0
+set g_true 1
+
+# Some Global configuration parameters..
+set g_entryWidth 60
+set g_buttonWidth 3 
+set g_controlWidth 10
+set g_padx 3 
+set g_pady 3
+
+# Creates/configures the overall frame.
+frame .f -relief groove -borderwidth 3
+pack .f -padx $g_padx -pady $g_pady
+
+# Creates the input/output file name entries + labels.
+entry .f.inputEntry   -width $g_entryWidth  
+entry .f.outputEntry  -width $g_entryWidth 
+entry .f.configEntry  -width $g_entryWidth 
+entry .f.commentEntry -width $g_entryWidth 
+label .f.inputLabel   -text "Input File:"
+label .f.outputLabel  -text "Output File:"
+label .f.configLabel  -text "Configuration File:"
+label .f.commentLabel -text "Comments File:"
+
+# Creates the find buttons.
+button .f.setInputFile   -text "find" -width $g_buttonWidth -command "SetInputFile"
+button .f.setOutputFile  -text "find" -width $g_buttonWidth -command "SetOutputFile"
+button .f.setConfigFile  -text "find" -width $g_buttonWidth -command "SetConfigFile"
+button .f.setCommentFile -text "find" -width $g_buttonWidth -command "SetCommentFile"
+
+# Creates the display buttons.
+button .f.editInputFile   -text "edit" -width $g_buttonWidth -command "EditInputFile"
+button .f.editOutputFile  -text "edit" -width $g_buttonWidth -command "EditOutputFile"
+button .f.editConfigFile  -text "edit" -width $g_buttonWidth -command "EditConfigFile"
+button .f.editCommentFile -text "edit" -width $g_buttonWidth -command "EditCommentFile"
+
+# Create the top level menus.
+menu .topLevelMenuBar
+menu .topLevelMenuBar.run
+menu .topLevelMenuBar.help
+.topLevelMenuBar add cascade -menu .topLevelMenuBar.run  -label "Run"
+.topLevelMenuBar add cascade -menu .topLevelMenuBar.help -label "Help"
+.topLevelMenuBar.run  add command -label "Start Processing" -command "StartProcessing"
+.topLevelMenuBar.help add command -label "User Manual"      -command "DisplayHelp"
+.topLevelMenuBar.help add command -label "Version"          -command "DisplayVersion"
+. configure -menu .topLevelMenuBar
+
+# Display the text boxes + labels...
+grid .f.inputEntry   -row 1 -column 2 -columnspan 3
+grid .f.outputEntry  -row 2 -column 2 -columnspan 3
+grid .f.configEntry  -row 3 -column 2 -columnspan 3
+grid .f.commentEntry -row 4 -column 2 -columnspan 3
+grid .f.inputLabel   -row 1 -column 1
+grid .f.outputLabel  -row 2 -column 1
+grid .f.configLabel  -row 3 -column 1
+grid .f.commentLabel -row 4 -column 1
+
+# Display the find buttons...
+grid .f.setInputFile   -row 1 -column 5 -padx $g_padx -pady $g_pady
+grid .f.setOutputFile  -row 2 -column 5 -padx $g_padx -pady $g_pady
+grid .f.setConfigFile  -row 3 -column 5 -padx $g_padx -pady $g_pady
+grid .f.setCommentFile -row 4 -column 5 -padx $g_padx -pady $g_pady
+
+# Display the display buttons...
+grid .f.editInputFile   -row 1 -column 6 -padx $g_padx -pady $g_pady
+grid .f.editOutputFile  -row 2 -column 6 -padx $g_padx -pady $g_pady
+grid .f.editConfigFile  -row 3 -column 6 -padx $g_padx -pady $g_pady
+grid .f.editCommentFile -row 4 -column 6 -padx $g_padx -pady $g_pady
+
+# Global variables...
+set g_inputFile   ""
+set g_outputFile  ""
+set g_commentFile ""
+set g_configFile  ""
+set g_helpFile    "$env(REPGEN_ROOT)/Help.txt"
+set g_versionInfo "RepGen: version 1.0"
+
+# --------------------------------------------------------------------------- #
+# BUTTON: SetInputFile
+# --------------------------------------------------------------------------- #
+proc SetInputFile {} \
+{
+    global g_inputFile
+    set g_inputFile [tk_getOpenFile -parent .]
+    .f.inputEntry delete 0 end 
+    .f.inputEntry insert end $g_inputFile
+}
+
+# --------------------------------------------------------------------------- #
+# BUTTON: SetOutputFile
+# --------------------------------------------------------------------------- #
+proc SetOutputFile {} \
+{
+    global g_outputFile
+    set g_outputFile [tk_getOpenFile -parent .]
+    .f.outputEntry delete 0 end 
+    .f.outputEntry insert end $g_outputFile
+}
+
+# --------------------------------------------------------------------------- #
+# BUTTON: SetConfigFile
+# --------------------------------------------------------------------------- #
+proc SetConfigFile {} \
+{
+    global g_configFile
+    set g_configFile [tk_getOpenFile -parent .]
+    .f.configEntry delete 0 end 
+    .f.configEntry insert end $g_configFile
+}
+
+# --------------------------------------------------------------------------- #
+# BUTTON: SetCommentFile
+# --------------------------------------------------------------------------- #
+proc SetCommentFile {} \
+{
+    global g_commentFile
+    set g_commentFile [tk_getOpenFile -parent .]
+    .f.commentEntry delete 0 end 
+    .f.commentEntry insert end $g_commentFile
+}
+
+# --------------------------------------------------------------------------- #
+# BUTTON: EditInputFile
+# --------------------------------------------------------------------------- #
+proc EditInputFile {} \
+{
+    global g_inputFile
+    Update
+    DisplayFile $g_inputFile input 1
+}
+
+# --------------------------------------------------------------------------- #
+# BUTTON: EditOutputFile
+# --------------------------------------------------------------------------- #
+proc EditOutputFile {} \
+{
+    global g_outputFile
+    Update
+    DisplayFile $g_outputFile output 1
+}
+
+# --------------------------------------------------------------------------- #
+# BUTTON: EditConfigFile
+# --------------------------------------------------------------------------- #
+proc EditConfigFile {} \
+{
+    global g_configFile
+    Update
+    DisplayFile $g_configFile config 1
+}
+
+# --------------------------------------------------------------------------- #
+# BUTTON: EditCommentFile
+# --------------------------------------------------------------------------- #
+proc EditCommentFile {} \
+{
+    global g_commentFile
+    Update
+    DisplayFile $g_commentFile comments 1
+}
+
+# --------------------------------------------------------------------------- #
+# StartProcessing
+# --------------------------------------------------------------------------- #
+proc StartProcessing {} \
+{
+    global g_inputFile
+    global g_outputFile
+    global g_configFile
+    global g_commentFile
+    global g_true
+    global g_false
+    
+    set errorMessage ""
+
+    Update
+
+    if {[ProcessFile $g_inputFile \
+                     $g_outputFile \
+                     $g_commentFile \
+                     $g_configFile \
+                     errorMessage] == $g_false} \
+    {
+        tk_messageBox -message $errorMessage
+    } \
+    else \
+    {
+        tk_messageBox -message "Complete"
+    }
+}
+
+# --------------------------------------------------------------------------- #
+# DisplayHelp
+# --------------------------------------------------------------------------- #
+proc DisplayHelp {} \
+{
+    global g_helpFile
+    DisplayFile $g_helpFile help 0 
+}
+
+# --------------------------------------------------------------------------- #
+# DisplayVersion
+# --------------------------------------------------------------------------- #
+proc DisplayVersion {} \
+{
+    global g_versionInfo
+    tk_messageBox -message "$g_versionInfo"
+}
+
+# --------------------------------------------------------------------------- #
+# DisplayFile
+# --------------------------------------------------------------------------- #
+proc DisplayFile {fileName \
+                  windowName
+                  writable} \
+{
+    if {[file exists $fileName] == 0} \
+    {
+        # File doesnt exist...
+        tk_messageBox -message "Error: File: $fileName does not exist!"
+    } \
+    elseif {[winfo exists .${windowName}] == 1} \
+    {
+        # File already open and being viewd/edited....
+    } \
+    else \
+    {
+        if {[catch {open $fileName r} fp] != 0} \
+        {
+            tk_messageBox -message "Error: Cannot open file: $filename!"
+	    } \
+        else \
+        {
+            toplevel  .$windowName
+            text      .${windowName}.t -yscrollcommand [list .${windowName}.verticalScrollBar set]
+            label     .${windowName}.l -justify left -text "File: $fileName"
+            scrollbar .${windowName}.verticalScrollBar -orient vertical -command [list .${windowName}.t yview]
+
+            grid .${windowName}.t                 -row 0 -column 0 -sticky news
+            grid .${windowName}.verticalScrollBar -row 0 -column 1 -sticky ns
+            grid .${windowName}.l                 -row 1 -column 0 -columnspan 2
+            grid columnconfigure .${windowName} 0 -weight 1
+            grid rowconfigure    .${windowName} 0 -weight 1
+
+            if {$writable} \
+            {
+                # Its a writable text, so create the save option...
+                destroy .menuBar
+                menu .menuBar
+                menu .menuBar.file
+                .menuBar add cascade -menu .menuBar.file -label "File"
+                .menuBar.file add command -label "Save" -command "SaveFile $fileName ${windowName}.t"
+                .${windowName} configure -menu .menuBar
+            }
+             
+            # Insert the text from the file into the text widget..
+            while {[gets $fp line] >= 0} \
+            {
+                .${windowName}.t insert end "$line\n"
+            }
+  	        close $fp
+
+            if {$writable == 0} \
+            {
+                # Make this 'text' object is read-only...
+                .${windowName}.t configure -state disabled
+            }
+	    }	      
+    }
+}         
+   
+# --------------------------------------------------------------------------- #
+# SaveFile
+# --------------------------------------------------------------------------- #
+proc SaveFile {fileName \
+               textWindow} \
+{
+    # Opens the file for writing...
+    if {[catch {open $fileName w} fp] != 0} \
+    {
+        tk_messageBox -message "Error: Cannot save file: $filename!"
+        return 0
+    } \
+    else \
+    {
+        # Writes the current contents of the text window to the file..
+        puts $fp [.${textWindow} get 1.0 end]
+        close $fp
+        return 1
+    }
+}
+     
+# --------------------------------------------------------------------------- #
+# Update 
+# --------------------------------------------------------------------------- #
+proc Update {} \
+{
+    global g_inputFile
+    global g_outputFile
+    global g_configFile
+    global g_commentFile
+
+    set g_inputFile   [.f.inputEntry get]
+    set g_outputFile  [.f.outputEntry get]
+    set g_configFile  [.f.configEntry get]
+    set g_commentFile [.f.commentEntry get]
+}
+
+# --------------------------------------------------------------------------- #
+# GetWindowHandle
+# --------------------------------------------------------------------------- #
+proc GetWindowHandle {fullFileName} \
+{
+    # This function changes a file/path name into a text string
+    # suitable to be used as a handle for a window.
+
+    # Strips off the directory path...
+    set fileName [file tail $fullFileName]
+
+    # Replaces the '.'s with '_'s. 
+    regsub -all "\\." $fileName "_" fileName
+
+    # Converts to lower case...
+    set fileName [string tolower $fileName]
+
+    return $fileName
+}
